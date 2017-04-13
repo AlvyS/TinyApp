@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Here's your new URL!</title>
+</head>
+<body>
+    <header>
+      <% include ../views/partials/_header %>
+    </header>
+    <main>
+    <li> ShortURL: <%= shortURL %>
+    <form action="/urls/<%= shortURL %>" method="POST" style="margin:150px;">
+    <input id="<%= shortURL %>" type="text" name="newLongURL" placeholder="<%=longURL%>" style="width: 300px">
+    <button> Gimme ma new URL! </button>
+    </form>
+    </li>
+    </main>
+</body>
+</html>
