@@ -1,5 +1,12 @@
 <!DOCTYPE html>
 <title> dis a hedder </title>
 <body>
-
+    <form method="POST" action="/logout">
+    <% if (userCookie) { %>
+    <p>Hello, <%= userCookie %> </p>
+    <button type="submit">Log Out</button>
+    <% } else {%>
+    <p> Please <a href="/login">login </a></p>
+    <% } %>
+    </form>
   </body>

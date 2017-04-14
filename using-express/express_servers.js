@@ -23,35 +23,33 @@ function generateRandomString() {
 
 //--------------- DATABASES
 const URLDatabase = {
-    "b2xVn2": {
-      longURL: "http://www.lighthouselabs.ca" },
-    "9sm5xK": {
-      longURL: "http://www.google.com" }
+  "b2xVn2": {
+    longURL: "http://www.lighthouselabs.ca" },
+  "9sm5xK": {
+    longURL: "http://www.google.com" }
 };
 
-// const users = [
-//   {
-//     id: 1,
-//     username: "alvy",
-//     password: "alvypw",
-//     email: "alvy@hotmail.com"
-//   },
-//   {
-//     id: 2,
-//     username: "derp",
-//     password: "derppw",
-//     email: "derp@hotmail.com"
-//   }
-// ];
+const users = {
+  "alvy": {
+    id: "alvy",
+    password: "alvypw",
+    email: "alvy@hotmail.com"
+  },
+  "derp": {
+    id: "derp",
+    password: "derppw",
+    email: "derp@hotmail.com"
+  }
+};
 
 
 //-------------- ROOT
 app.get("/", (req, res) => {
-  var user = null;
-  // console.log("reqcookieuser: ", req.cookies.user); // #
-  if (req.cookies.user) {
-    findUser(user)
-    }
+  // var user = null;
+  // // console.log("reqcookieuser: ", req.cookies.user); // #
+  // if (req.cookies.user) {
+  //   findUser(user)
+  //   }
     res.redirect("urls");
   // } else {
   //   res.redirect("login");
@@ -61,10 +59,9 @@ app.get("/", (req, res) => {
 
 //-------------- URLS
 app.get("/urls", (req, res) => {
-  console.log(req.cookies["username"]);
   let templateVars = {
     urls: URLDatabase,
-    username: req.cookies["username"]
+    userCookie: req.cookies["user"]
   };
   // console.log("templateVar: " + templateVars.urls);
   res.render("urls_index", templateVars);
@@ -77,14 +74,18 @@ app.get("/login", (req, res) => {
 
 app.post("/login", (req, res) => {
   let username = req.body.username;
-  let password = req.body.password;
+  // let password = req.body.password;
   // let user = users.find(function(user) {
-  //   return user.username == username;
-  // });
-  res.cookie(username);
+  res.cookie('user', username);
   res.redirect("/");
 });
 
+
+//----------- Logout
+app.post("/logout", (req, res) => {
+  delete req.cookies["user"];
+  res.redirect("/");
+});
 
 //----------- Add generated short URL to database
 app.post("/urls", (req, res) => {
@@ -94,9 +95,6 @@ app.post("/urls", (req, res) => {
     longURL: longURL
   };
   URLDatabase[generatedShortURL] = newURLId; // ie: obj[newProperty] = newValue
-  // console.log("Short URL: ", generatedShortURL);
-  // console.log("Long URL: ", newURLId.longURL);
-  // console.log("Long URL in DB: ", URLDatabase[generatedShortURL].longURL);
   res.redirect(longURL);
 });
 
@@ -126,7 +124,6 @@ app.get("/urls/:id", (req, res) => {
     shortURL: [req.params.id],
     longURL: URLDatabase[req.params.id].longURL
   };
-  //console.log("temp vars: ", templateVars);
   res.render("urls_show", templateVars);
 });
 
@@ -137,6 +134,31 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longURL);
 });
 
+
+//--------------Register
+app.get("/register", (req, res) => {
+
+})
+
+app.post("/register", (req, res) => {
+  let email = req.body.email;
+  let password = req.body.password;
+  let RandomID = generateRandomString();
+  for (user in users) {
+    if (email === users[user].email) {
+      res.status(400).send("Email exists in database");
+    } else if (!email || !password) {
+      res.status(400).send("Can't leave fields blank");
+    } else {
+      users[RandomID] = {
+        id: RandomID,
+        email: email,
+        password: password
+      };
+      res.redirect("/");
+    }
+  }
+});
 
 //----------- Delete Button
 app.post('/urls/:id/delete', (req, res) => {
