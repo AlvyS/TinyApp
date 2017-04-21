@@ -1,18 +1,28 @@
+//-------------------------------------------------EXPORTS-------------------------------------------------------//
 const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 8080; // default port 8080
-const cookieParser = require("cookie-parser");
+// const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
+const bcrypt = require("bcrypt");
+const cookieSession = require('cookie-session');
 
+
+//-------------------------------------------------MIDDLEWARE---------------------------------------------------//
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+// app.use(cookieParser());
 app.set("view engine", "ejs");
-
+app.use(cookieSession( {
+  name: 'session',
+  keys: ["cookey"],
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours // Cookie Options
+}));
 app.get("/urls.json", (req, res) => {
   res.json(URLDatabase);
 });
 
-//---------------- FUNCTIONS
+
+//---------------------------------------------- FUNCTIONS -----------------------------------------------------//
 function generateRandomString() {
   var randString = "";
   var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -21,153 +31,224 @@ function generateRandomString() {
     return randString;
 }
 
-//--------------- DATABASES
+function findEmail(obj) {
+  for(var i in obj) {
+    return obj[i].email;
+  }
+}
+
+function urlsForUser(id) {
+  let userDatabase = {};
+  for (urlID in URLDatabase) {
+    if (URLDatabase[urlID] !== undefined && URLDatabase[urlID].userID === id) {
+      userDatabase[urlID] = URLDatabase[urlID]
+    }
+  }
+  return userDatabase;
+}
+
+
+//----------------------------------------------- DATABASES --------------------------------------------------//
 const URLDatabase = {
   "b2xVn2": {
-    longURL: "http://www.lighthouselabs.ca" },
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "randomID1"
+  },
   "9sm5xK": {
-    longURL: "http://www.google.com" }
+    longURL: "http://www.google.com",
+    userID: "randomID2"
+  }
 };
 
-const users = {
-  "alvy": {
-    id: "alvy",
-    password: "alvypw",
+const userDB = {
+  "randomID1": {
+    id: "randomID1",
+    password: bcrypt.hashSync('pw', 10),
     email: "alvy@hotmail.com"
   },
-  "derp": {
-    id: "derp",
-    password: "derppw",
+  "randomID2": {
+    id: "randomID2",
+    password: bcrypt.hashSync('pw', 10),
     email: "derp@hotmail.com"
   }
 };
 
 
-//-------------- ROOT
+//------------------------------------------------ ROOT --------------------------------------------------//
 app.get("/", (req, res) => {
-  // var user = null;
-  // // console.log("reqcookieuser: ", req.cookies.user); // #
-  // if (req.cookies.user) {
-  //   findUser(user)
-  //   }
-    res.redirect("urls");
-  // } else {
-  //   res.redirect("login");
-  // }
+  if (req.session.user_id) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 
-//-------------- URLS
+//------------------------------------------------ URLS -------------------------------------------------//
 app.get("/urls", (req, res) => {
-  let templateVars = {
-    urls: URLDatabase,
-    userCookie: req.cookies["user"]
+  // console.log("userDB: ", userDB);
+  let id = req.session.user_id;
+  if (id) {
+    let templateVars = {
+      urls: urlsForUser(id),
+      user: userDB[id],
+      currentUserEmail: userDB[id].email
+    };
+  // console.log("test1 ", req.session.user_id); //randomID2
+  res.status(200).render("urls_index", templateVars);
+  } else {
+  res.status(401).send("Please login");
+  }
+});
+
+
+//------------------------------------------------- Register ----------------------------------------------------//
+app.get("/register", (req, res) => {
+  if (req.session.user_id) {
+    res.redirect("/");
+  } else {
+    res.status(200).render("register")
+  }
+});
+
+app.post("/register", (req, res) => {
+  let email = req.body.email;
+  let password = req.body.password;
+  const hashed_password = bcrypt.hashSync(password, 10);
+  if (!email || !password) {
+    res.status(400).send("Can't leave fields blank");
+  }
+  for (user in userDB) {
+    if (email === userDB[user].email) {
+      res.status(400).send("Email exists in database");
+    }
+  }
+  let randomID = generateRandomString();
+  userDB[randomID] = {
+    id: randomID,
+    email: email,
+    password: hashed_password
   };
-  // console.log("templateVar: " + templateVars.urls);
-  res.render("urls_index", templateVars);
+  req.session.user_id = userDB[user].id;
+  res.redirect("/");
 });
 
-//---------- Login
+
+//----------------------------------------------- Login page -------------------------------------------------//
 app.get("/login", (req, res) => {
-  res.render("login");
+  let templateVars = {
+    users: req.session.user_id
+  };
+  if (req.session.user_id) {
+    res.redirect("/");
+  } else {
+  res.render("login", templateVars);
+  }
 });
 
+//---------------------------------------- Log in fields and checks ------------------------------------------//
 app.post("/login", (req, res) => {
-  let username = req.body.username;
-  // let password = req.body.password;
-  // let user = users.find(function(user) {
-  res.cookie('user', username);
-  res.redirect("/");
+  let email = req.body.email;
+  let password = req.body.password;
+  let success = false;
+  for (user in userDB) {
+    if (email == userDB[user].email) {
+      var comparePassword = bcrypt.compareSync(password, userDB[user].password);  
+      if (comparePassword) {
+        success = true;
+        currentUser = userDB[user].id;
+      }
+    }
+  }
+  if (success) {
+    req.session.user_id = currentUser;
+    res.redirect("/");
+  } else {
+    res.status(401).send("401 Wrong email and/or password")
+  }
 });
 
 
-//----------- Logout
+//-------------------------------------------- Logout -------------------------------------------------//
 app.post("/logout", (req, res) => {
-  delete req.cookies["user"];
+  req.session = null;
   res.redirect("/");
 });
 
-//----------- Add generated short URL to database
+
+//-------------------------------------- Convert URL -> Database ----------------------------------------//
 app.post("/urls", (req, res) => {
   let generatedShortURL = generateRandomString();
   let longURL = req.body.longURL;
   const newURLId = {
-    longURL: longURL
+    longURL: longURL,
+    userID: req.session.user_id
   };
   URLDatabase[generatedShortURL] = newURLId; // ie: obj[newProperty] = newValue
-  res.redirect(longURL);
+  res.redirect("/urls");
 });
 
 
-//------- URL New
+//----------------------------------- Link to Generate new URL ----------------------------------//
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  if (req.session.user_id) {
+    // var testEmail = findEmail(userDB);
+    let templateVars = {
+      user: userDB[req.session.user_id]
+    };
+    res.status(200).render("urls_new", templateVars);
+  } else {
+    res.redirect("login");
+  }
 });
 
 
-//------- Updating to new URL
+//-------------------------------------- Update existing URL --------------------------------------//
 app.post("/urls/:id", (req, res) => {
-  let newURL = req.body.newLongURL;
+  let newURL = req.body.longURL;
   URLDatabase[req.params.id].longURL = newURL;
   res.redirect("/urls");
 });
 
 
-//------- Redirect to update page
+//------------------------------- Get to page to update existing URL --------------------------------//
 app.get("/urls/:id", (req, res) => {
-  // console.log("rpi1:" , req.params.id); kill
-  // console.log("hard: " , "b2xVn2"); me
-  // console.log("udb" , URLDatabase[req.params.id].longURL); now
-  // console.log("wat" , URLDatabase["b2xVn2"].longURL);
-  // console.log("DB" , URLDatabase);
-  let templateVars = {
-    shortURL: [req.params.id],
-    longURL: URLDatabase[req.params.id].longURL
-  };
-  res.render("urls_show", templateVars);
-});
-
-
-//------------ Redirects to original website
-app.get("/u/:id", (req, res) => {
-  let longURL = URLDatabase[req.params.id].longURL
-  res.redirect(longURL);
-});
-
-
-//--------------Register
-app.get("/register", (req, res) => {
-
-})
-
-app.post("/register", (req, res) => {
-  let email = req.body.email;
-  let password = req.body.password;
-  let RandomID = generateRandomString();
-  for (user in users) {
-    if (email === users[user].email) {
-      res.status(400).send("Email exists in database");
-    } else if (!email || !password) {
-      res.status(400).send("Can't leave fields blank");
-    } else {
-      users[RandomID] = {
-        id: RandomID,
-        email: email,
-        password: password
-      };
-      res.redirect("/");
-    }
+  if (!URLDatabase[req.params.id]) {
+    res.status(404).send('Doesnt exist');
+  } else if (!req.session.user_id) {
+    res.status(401).send('Please login');
+  } else if (req.session.user_id !== URLDatabase[req.params.id].userID) {
+    res.status(403).send('Wrong account');
+  } else {
+    let templateVars = {
+      user: userDB,
+      shortURL: [req.params.id],
+      longURL: URLDatabase[req.params.id].longURL
+    };
+    res.render("urls_show", templateVars);
   }
 });
 
-//----------- Delete Button
+
+//----------------------------- Redirects to original website --------------------------------//
+app.get("/u/:id", (req, res) => {
+  let longURL = URLDatabase[req.params.id].longURL
+  if (URLDatabase[req.params.id]) {
+    res.redirect(longURL);
+  } else {
+    res.status(404).send('404 not found');
+  }
+});
+
+
+//------------------------------------ Delete Button ----------------------------------------------//
 app.post('/urls/:id/delete', (req, res) => {
   delete URLDatabase[req.params.id];
   res.redirect('/urls');
 });
 
 
-// --------------- Listen
+// ---------------------------------------- Listen ---------------------------------------------//
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
