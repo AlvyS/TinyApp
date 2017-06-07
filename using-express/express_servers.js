@@ -2,15 +2,12 @@
 const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 8080; // default port 8080
-// const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
 const cookieSession = require('cookie-session');
 
-
 //-------------------------------------------------MIDDLEWARE---------------------------------------------------//
 app.use(bodyParser.urlencoded({extended: true}));
-// app.use(cookieParser());
 app.set("view engine", "ejs");
 app.use(cookieSession( {
   name: 'session',
@@ -86,7 +83,6 @@ app.get("/", (req, res) => {
 
 //------------------------------------------------ URLS -------------------------------------------------//
 app.get("/urls", (req, res) => {
-  // console.log("userDB: ", userDB);
   let id = req.session.user_id;
   if (id) {
     let templateVars = {
@@ -94,7 +90,6 @@ app.get("/urls", (req, res) => {
       user: userDB[id],
       currentUserEmail: userDB[id].email
     };
-  // console.log("test1 ", req.session.user_id); //randomID2
   res.status(200).render("urls_index", templateVars);
   } else {
   res.status(401).send("Please login");
@@ -192,7 +187,6 @@ app.post("/urls", (req, res) => {
 //----------------------------------- Link to Generate new URL ----------------------------------//
 app.get("/urls/new", (req, res) => {
   if (req.session.user_id) {
-    // var testEmail = findEmail(userDB);
     let templateVars = {
       user: userDB[req.session.user_id]
     };

@@ -1,12 +1,19 @@
 <!DOCTYPE html>
-<title> dis a hedder </title>
-<body>
+<html lang="en">
+
+  <title> dis a hedder </title>
+  
+  <body>
     <% if (user) { %>
-    <p>Hello, <%= user.email %> </p>
-    <form method="POST" action="/logout"> <button type="submit">Log Out</button> </form>
-    <p> <a href="/urls">My Links </a></p>
+      <p>Hello, <%= user.email %> </p>
+      <form method="POST" action="/logout"> 
+        <button type="submit">Log Out</button>
+      </form>
+      <p> <a href="/urls">My Links </a> </p>
     <% } else { %>
-    <p> Please <a href="/login">login </a></p>
-    <p> Please <a href="/register">register </a></p>
+      <p> Please <a href="/login">login </a> </p>
+      <p> Please <a href="/register">register </a ></p>
     <% } %>
   </body>
+
+</html>

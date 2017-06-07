@@ -1,32 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <title>TinyApp</title>
-</head>
-<body>
-    <header>
-      <% include ../views/partials/_header %>
-      </header>
-          <% for (var shortURL in urls) { %>
 
-        <li>
-            <a href="http://localhost:8080/u/<%=shortURL%>">
-              http://localhost:8080/u/<%=shortURL%>
-            </a>
+  <head>
+    <title>TinyApp</title>
+  </head>
 
-            is your shortened version of <%=urls[shortURL].longURL%>
+  <body>
+    <header> <% include ../views/partials/_header %> </header>
+    <% for (var shortURL in urls) { %>
+      <li>
+        <a href="http://localhost:8080/u/<%=shortURL%>"> http://localhost:8080/u/<%=shortURL%> </a>
+          is your shortened version of <%=urls[shortURL].longURL%>
+        <form method="POST" action="/urls/<%=shortURL%>/delete">
+          <p> 
+            <button>Delete URL</button> 
+          </p>
+        </form>
+        <form method="GET" action="/urls/<%=shortURL%>">
+          <p> 
+            <button>Update my URL</button>
+          </p>
+        </form>
+      </li>
+    <% } %>
 
-          <form method="POST" action="/urls/<%=shortURL%>/delete">
-            <p> <button>Delete URL</button> </p>
-            </form>
-
-          <form method="GET" action="/urls/<%=shortURL%>">
-            <p> <button>Update my URL</button>   </p>
-          </form>
-        </li>
-      <% } %>
-
-
-    <a href="../urls/new">Click here to create a new Short URL.</a>
-</body>
+  <a href="../urls/new">Click here to create a new Short URL.</a>
+  
+  </body>
 </html>
